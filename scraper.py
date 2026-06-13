@@ -58,12 +58,23 @@ KEYWORDS_EGYPT = [
 # remote + country filters cleanly via guest search, so this list is used
 # there. Title filter still applies.
 REMOTE_SEARCHES = [
-    {"keyword": "Data Analyst", "location": "United States", "remote": True},
-    {"keyword": "Business Intelligence Analyst", "location": "United States", "remote": True},
-    {"keyword": "Power BI", "location": "United States", "remote": True},
-    {"keyword": "Data Analyst", "location": "Saudi Arabia", "remote": True},
-    {"keyword": "Business Intelligence", "location": "Saudi Arabia", "remote": True},
-    {"keyword": "Power BI", "location": "Saudi Arabia", "remote": True},
+    {"keyword": "Data Analyst", "location": "United States"},
+    {"keyword": "Business Intelligence Analyst", "location": "United States"},
+    {"keyword": "Power BI", "location": "United States"},
+
+    {"keyword": "Data Analyst", "location": "Saudi Arabia"},
+    {"keyword": "Business Intelligence", "location": "Saudi Arabia"},
+    {"keyword": "Power BI", "location": "Saudi Arabia"},
+
+    {"keyword": "Data Analyst", "location": "United Arab Emirates"},
+    {"keyword": "Business Intelligence", "location": "United Arab Emirates"},
+    {"keyword": "Power BI", "location": "United Arab Emirates"},
+
+    {"keyword": "Data Analyst", "location": "Kuwait"},
+    {"keyword": "Business Intelligence", "location": "Kuwait"},
+
+    {"keyword": "Data Analyst", "location": "Qatar"},
+    {"keyword": "Business Intelligence", "location": "Qatar"},
 ]
 
 # ── TITLE FILTER — only keep jobs where title matches ──
@@ -127,7 +138,7 @@ def save_seen_jobs(today, jobs):
         json.dump({"date": today, "jobs": jobs}, f)
 
 
-def make_job(source, title, company, location, link, posted, easy_apply=False):
+def make_job(source, title, company, location, link, posted, easy_apply=False, region="Egypt"):
     return {
         "id":        f"{source}::{link}",
         "source":    source,
@@ -137,6 +148,7 @@ def make_job(source, title, company, location, link, posted, easy_apply=False):
         "link":      link,
         "posted":    posted,
         "easy_apply": easy_apply,
+        "region":    region,
         "found_at":  datetime.now(timezone.utc).isoformat(),
     }
 
@@ -144,7 +156,7 @@ def make_job(source, title, company, location, link, posted, easy_apply=False):
 # ──────────────────────────────────────────────
 #  LINKEDIN
 # ──────────────────────────────────────────────
-def scrape_linkedin(keyword, location="Egypt", remote=False):
+def scrape_linkedin(keyword, location="Egypt"):
     jobs = []
     params = {
         "keywords": keyword,
@@ -153,7 +165,7 @@ def scrape_linkedin(keyword, location="Egypt", remote=False):
         "position": 1,
         "pageNum":  0,
     }
-    if remote:
+    if location != "Egypt":
         params["f_WT"] = "2"  # remote filter
 
     url = "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
@@ -195,7 +207,8 @@ def scrape_linkedin(keyword, location="Egypt", remote=False):
                 # Easy Apply badge (only visible to logged-in scrapes, best-effort)
                 easy_apply = bool(card.find(string=lambda s: s and "Easy Apply" in s))
 
-                jobs.append(make_job("LinkedIn", title, company, loc, link, posted, easy_apply))
+                region = "Egypt" if location == "Egypt" else f"Remote - {location}"
+                jobs.append(make_job("LinkedIn", title, company, loc, link, posted, easy_apply, region=region))
 
             except Exception as e:
                 print(f"    [LinkedIn] card error: {e}")
@@ -244,7 +257,7 @@ def scrape_wuzzuf(keyword):
                 company_tag = card.find("a", href=lambda x: x and "/c/" in x)
                 company = company_tag.get_text(strip=True) if company_tag else "N/A"
 
-                date_tag = card.find(string=lambda s: s and ("ago" in s.lower() or "day" in s.lower() or "hour" in s.lower()))
+                date_tag = card.find(string=lambda s: s and any(w in s.lower() for w in ["ago", "today", "yesterday", "hour", "day", "minute", "week"]))
                 posted = date_tag.strip() if date_tag else "Recently"
 
                 jobs.append(make_job("Wuzzuf", title, company, "Egypt", link, posted))
@@ -388,6 +401,36 @@ def build_table(jobs):
     </table>
     """
 
+REGION_ORDER = [
+    "Egypt",
+    "Remote - United States",
+    "Remote - Saudi Arabia",
+    "Remote - United Arab Emirates",
+    "Remote - Kuwait",
+    "Remote - Qatar",
+]
+
+def ordered_regions(jobs):
+    present = set(j.get("region", "Egypt") for j in jobs)
+    ordered = [r for r in REGION_ORDER if r in present]
+    extra = sorted(r for r in present if r not in REGION_ORDER)
+    return ordered + extra
+
+def build_region_blocks(jobs, heading_color):
+    blocks = ""
+    for region in ordered_regions(jobs):
+        region_jobs = [j for j in jobs if j.get("region", "Egypt") == region]
+        if not region_jobs:
+            continue
+        label = "🇪🇬 Egypt" if region == "Egypt" else f"🌍 {region.replace('Remote - ', '')} (Remote)"
+        blocks += f"""
+        <div style="padding:14px 32px 4px;">
+          <h3 style="margin:0;font-size:14px;color:{heading_color};">{label} — {len(region_jobs)}</h3>
+        </div>
+        {build_table(region_jobs)}
+        """
+    return blocks
+
 def build_email_html(new_jobs, earlier_jobs):
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     total = len(new_jobs) + len(earlier_jobs)
@@ -398,14 +441,14 @@ def build_email_html(new_jobs, earlier_jobs):
         <div style="padding:18px 32px 4px;">
           <h2 style="margin:0;font-size:16px;color:#059669;">🆕 New since last check ({len(new_jobs)})</h2>
         </div>
-        {build_table(new_jobs)}
+        {build_region_blocks(new_jobs, "#059669")}
         """
     if earlier_jobs:
         sections += f"""
         <div style="padding:18px 32px 4px;">
           <h2 style="margin:0;font-size:16px;color:#6b7280;">📋 Earlier today ({len(earlier_jobs)})</h2>
         </div>
-        {build_table(earlier_jobs)}
+        {build_region_blocks(earlier_jobs, "#6b7280")}
         """
 
     html = f"""
@@ -475,7 +518,7 @@ def main():
         print(f"\n   Searching (Egypt): {keyword}")
 
         for name, func in [
-            ("LinkedIn", lambda kw: scrape_linkedin(kw, "Egypt", False)),
+            ("LinkedIn", lambda kw: scrape_linkedin(kw, "Egypt")),
             ("Wuzzuf",   scrape_wuzzuf),
             ("Bayt",     scrape_bayt),
             ("Indeed",   scrape_indeed),
@@ -497,7 +540,7 @@ def main():
         loc = search["location"]
         print(f"\n   Searching (Remote/{loc}): {kw}")
         try:
-            results = scrape_linkedin(kw, loc, remote=True)
+            results = scrape_linkedin(kw, loc)
             fresh = [j for j in results if j["id"] not in seen_ids]
             print(f"     LinkedIn: {len(results)} found, {len(fresh)} new")
             all_new_jobs.extend(fresh)
