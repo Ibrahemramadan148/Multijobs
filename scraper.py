@@ -33,6 +33,7 @@ SEEN_JOBS_FILE = "seen_jobs.json"
 
 # Keywords searched for Egypt-based jobs
 KEYWORDS_EGYPT = [
+    # Data Analyst variants
     "Data Analyst",
     "Business Intelligence Analyst",
     "BI Analyst",
@@ -40,54 +41,134 @@ KEYWORDS_EGYPT = [
     "Power BI",
     "Power BI Developer",
     "Power BI Analyst",
+    "Power BI Engineer",
     "Data Visualization",
+    "Data Visualization Analyst",
     "Reporting Analyst",
     "Business Analyst",
     "Dashboard Developer",
+    "Dashboard Analyst",
     "Data Insights Analyst",
     "Analytics Specialist",
+    "Analytics Analyst",
     "MIS Analyst",
+    "MIS Executive",
     "Data Specialist",
     "SQL Analyst",
     "Data Management",
     "Data Engineer",
     "Insights Analyst",
+    "Data Reporting",
+    "Data Operations",
+    "Data Coordinator",
+    "Excel Analyst",
+    "Tableau Analyst",
+    "Tableau Developer",
+    "Looker Analyst",
+    "Qlik Analyst",
+    "ETL Analyst",
+    "Analytics Engineer",
+    "Decision Support Analyst",
+    "Performance Analyst",
+    "Reporting Engineer",
+    "BI Developer",
+    "BI Engineer",
+    "BI Specialist",
+    "BI Manager",
+    "Senior Analyst",
+    "Data Science Analyst",
 ]
 
-# Keywords + locations for REMOTE jobs (US / KSA) — only LinkedIn supports
-# remote + country filters cleanly via guest search, so this list is used
-# there. Title filter still applies.
 REMOTE_SEARCHES = [
+    # United States
     {"keyword": "Data Analyst", "location": "United States"},
     {"keyword": "Business Intelligence Analyst", "location": "United States"},
+    {"keyword": "BI Analyst", "location": "United States"},
     {"keyword": "Power BI", "location": "United States"},
+    {"keyword": "Reporting Analyst", "location": "United States"},
+    {"keyword": "Analytics Engineer", "location": "United States"},
 
+    # Saudi Arabia
     {"keyword": "Data Analyst", "location": "Saudi Arabia"},
     {"keyword": "Business Intelligence", "location": "Saudi Arabia"},
+    {"keyword": "BI Analyst", "location": "Saudi Arabia"},
     {"keyword": "Power BI", "location": "Saudi Arabia"},
+    {"keyword": "Reporting Analyst", "location": "Saudi Arabia"},
 
+    # United Arab Emirates
     {"keyword": "Data Analyst", "location": "United Arab Emirates"},
     {"keyword": "Business Intelligence", "location": "United Arab Emirates"},
+    {"keyword": "BI Analyst", "location": "United Arab Emirates"},
     {"keyword": "Power BI", "location": "United Arab Emirates"},
+    {"keyword": "Reporting Analyst", "location": "United Arab Emirates"},
 
+    # Kuwait
     {"keyword": "Data Analyst", "location": "Kuwait"},
     {"keyword": "Business Intelligence", "location": "Kuwait"},
+    {"keyword": "BI Analyst", "location": "Kuwait"},
+    {"keyword": "Power BI", "location": "Kuwait"},
 
+    # Qatar
     {"keyword": "Data Analyst", "location": "Qatar"},
     {"keyword": "Business Intelligence", "location": "Qatar"},
+    {"keyword": "BI Analyst", "location": "Qatar"},
+    {"keyword": "Power BI", "location": "Qatar"},
 ]
 
-# ── TITLE FILTER — only keep jobs where title matches ──
+# ── TITLE FILTER — case-insensitive substring match ──
+# A job passes if its title contains ANY of these strings.
+# Keep these short/partial so they catch variations naturally.
 TITLE_MUST_CONTAIN = [
-    "data analyst", "bi analyst", "business intelligence",
-    "power bi", "reporting analyst", "business analyst",
-    "data visualization", "dashboard", "mis analyst",
-    "mis executive", "sql analyst", "data specialist",
-    "data coordinator", "data insights", "analytics",
-    "data reporting", "data management", "data operations",
-    "insights analyst", "data & reporting", "excel analyst",
-    "data science", "data engineer",
+    # BI / Business Intelligence — catches "BI Analyst", "Sr. BI", "BI Developer", etc.
+    " bi ",          # space-padded to avoid false matches like "mobile"
+    "bi analyst",
+    "bi developer",
+    "bi engineer",
+    "bi specialist",
+    "bi manager",
+    "business intel",   # catches "business intelligence" + "business intel"
+    "business analyst",
+
+    # Data Analyst family
+    "data analyst",
+    "data analysis",
+    "data specialist",
+    "data coordinator",
+    "data insights",
+    "data reporting",
+    "data management",
+    "data operations",
+    "data engineer",
+    "data science",
+    "data visualization",
+
+    # Reporting / Dashboards
+    "reporting analyst",
+    "reporting engineer",
+    "dashboard",
+
+    # Analytics
+    "analytics",        # catches "analytics analyst", "analytics engineer", "analytics specialist"
+    "insights analyst",
+
+    # Tools-based titles
+    "power bi",
+    "tableau",
+    "looker",
+    "qlik",
+    "sql analyst",
+    "excel analyst",
+    "etl analyst",
+
+    # MIS
+    "mis analyst",
+    "mis executive",
+
+    # Other
+    "decision support",
+    "performance analyst",
 ]
+
 
 def is_relevant_title(title):
     title_lower = title.lower()
