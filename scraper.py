@@ -81,38 +81,38 @@ KEYWORDS_EGYPT = [
 
 REMOTE_SEARCHES = [
     # United States
-    {"keyword": "Data Analyst", "location": "United States"},
-    {"keyword": "Business Intelligence Analyst", "location": "United States"},
-    {"keyword": "BI Analyst", "location": "United States"},
-    {"keyword": "Power BI", "location": "United States"},
-    {"keyword": "Reporting Analyst", "location": "United States"},
-    {"keyword": "Analytics Engineer", "location": "United States"},
+    {"keyword": "Data Analyst",                   "location": "United States"},
+    {"keyword": "Business Intelligence Analyst",  "location": "United States"},
+    {"keyword": "BI Analyst",                     "location": "United States"},
+    {"keyword": "Power BI",                       "location": "United States"},
+    {"keyword": "Reporting Analyst",              "location": "United States"},
+    {"keyword": "Analytics Engineer",             "location": "United States"},
 
     # Saudi Arabia
-    {"keyword": "Data Analyst", "location": "Saudi Arabia"},
-    {"keyword": "Business Intelligence", "location": "Saudi Arabia"},
-    {"keyword": "BI Analyst", "location": "Saudi Arabia"},
-    {"keyword": "Power BI", "location": "Saudi Arabia"},
-    {"keyword": "Reporting Analyst", "location": "Saudi Arabia"},
+    {"keyword": "Data Analyst",                   "location": "Saudi Arabia"},
+    {"keyword": "Business Intelligence",          "location": "Saudi Arabia"},
+    {"keyword": "BI Analyst",                     "location": "Saudi Arabia"},
+    {"keyword": "Power BI",                       "location": "Saudi Arabia"},
+    {"keyword": "Reporting Analyst",              "location": "Saudi Arabia"},
 
     # United Arab Emirates
-    {"keyword": "Data Analyst", "location": "United Arab Emirates"},
-    {"keyword": "Business Intelligence", "location": "United Arab Emirates"},
-    {"keyword": "BI Analyst", "location": "United Arab Emirates"},
-    {"keyword": "Power BI", "location": "United Arab Emirates"},
-    {"keyword": "Reporting Analyst", "location": "United Arab Emirates"},
+    {"keyword": "Data Analyst",                   "location": "United Arab Emirates"},
+    {"keyword": "Business Intelligence",          "location": "United Arab Emirates"},
+    {"keyword": "BI Analyst",                     "location": "United Arab Emirates"},
+    {"keyword": "Power BI",                       "location": "United Arab Emirates"},
+    {"keyword": "Reporting Analyst",              "location": "United Arab Emirates"},
 
     # Kuwait
-    {"keyword": "Data Analyst", "location": "Kuwait"},
-    {"keyword": "Business Intelligence", "location": "Kuwait"},
-    {"keyword": "BI Analyst", "location": "Kuwait"},
-    {"keyword": "Power BI", "location": "Kuwait"},
+    {"keyword": "Data Analyst",                   "location": "Kuwait"},
+    {"keyword": "Business Intelligence",          "location": "Kuwait"},
+    {"keyword": "BI Analyst",                     "location": "Kuwait"},
+    {"keyword": "Power BI",                       "location": "Kuwait"},
 
     # Qatar
-    {"keyword": "Data Analyst", "location": "Qatar"},
-    {"keyword": "Business Intelligence", "location": "Qatar"},
-    {"keyword": "BI Analyst", "location": "Qatar"},
-    {"keyword": "Power BI", "location": "Qatar"},
+    {"keyword": "Data Analyst",                   "location": "Qatar"},
+    {"keyword": "Business Intelligence",          "location": "Qatar"},
+    {"keyword": "BI Analyst",                     "location": "Qatar"},
+    {"keyword": "Power BI",                       "location": "Qatar"},
 ]
 
 # ── TITLE FILTER — case-insensitive substring match ──
@@ -120,7 +120,7 @@ REMOTE_SEARCHES = [
 # Keep these short/partial so they catch variations naturally.
 TITLE_MUST_CONTAIN = [
     # BI / Business Intelligence — catches "BI Analyst", "Sr. BI", "BI Developer", etc.
-    " bi ",          # space-padded to avoid false matches like "mobile"
+    " bi ",             # space-padded to avoid false matches like "mobile"
     "bi analyst",
     "bi developer",
     "bi engineer",
@@ -170,9 +170,17 @@ TITLE_MUST_CONTAIN = [
 ]
 
 
-def is_relevant_title(title):
-    title_lower = title.lower()
-    return any(kw in title_lower for kw in TITLE_MUST_CONTAIN)
+def is_relevant_title(title: str) -> bool:
+    """
+    Case-insensitive substring match. Space-pads the title so that
+    ' bi ' correctly matches titles starting or ending with 'BI'.
+    """
+    import re
+    normalized = f" {title.lower().strip()} "
+    normalized = re.sub(r"[^a-z0-9 ]", " ", normalized)
+    normalized = re.sub(r" +", " ", normalized)
+    return any(kw in normalized for kw in TITLE_MUST_CONTAIN)
+
 # ───────────────────────────────────────────────
 
 HEADERS = {
@@ -221,16 +229,16 @@ def save_seen_jobs(today, jobs):
 
 def make_job(source, title, company, location, link, posted, easy_apply=False, region="Egypt"):
     return {
-        "id":        f"{source}::{link}",
-        "source":    source,
-        "title":     title,
-        "company":   company,
-        "location":  location,
-        "link":      link,
-        "posted":    posted,
-        "easy_apply": easy_apply,
-        "region":    region,
-        "found_at":  datetime.now(timezone.utc).isoformat(),
+        "id":          f"{source}::{link}",
+        "source":      source,
+        "title":       title,
+        "company":     company,
+        "location":    location,
+        "link":        link,
+        "posted":      posted,
+        "easy_apply":  easy_apply,
+        "region":      region,
+        "found_at":    datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -302,7 +310,7 @@ def scrape_linkedin(keyword, location="Egypt"):
 
 
 # ──────────────────────────────────────────────
-#  WUZZUF — has a real searchable jobs page
+#  WUZZUF
 # ──────────────────────────────────────────────
 def scrape_wuzzuf(keyword):
     jobs = []
@@ -314,7 +322,6 @@ def scrape_wuzzuf(keyword):
         resp = requests.get(url, headers=HEADERS, params=params, cookies=cookies, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # Each job card is an <a> linking to /jobs/p/...
         links = soup.find_all("a", href=lambda x: x and "/jobs/p/" in x)
 
         for a_tag in links:
@@ -327,7 +334,6 @@ def scrape_wuzzuf(keyword):
                 if not title or not is_relevant_title(title):
                     continue
 
-                # Walk up to find the card container for company/date
                 card = a_tag
                 for _ in range(4):
                     if card.parent:
@@ -338,12 +344,14 @@ def scrape_wuzzuf(keyword):
                 company_tag = card.find("a", href=lambda x: x and "/c/" in x)
                 company = company_tag.get_text(strip=True) if company_tag else "N/A"
 
-                date_tag = card.find(string=lambda s: s and any(w in s.lower() for w in ["ago", "today", "yesterday", "hour", "day", "minute", "week"]))
+                date_tag = card.find(string=lambda s: s and any(
+                    w in s.lower() for w in ["ago", "today", "yesterday", "hour", "day", "minute", "week"]
+                ))
                 posted = date_tag.strip() if date_tag else "Recently"
 
                 jobs.append(make_job("Wuzzuf", title, company, "Egypt", link, posted))
 
-            except Exception as e:
+            except Exception:
                 continue
 
     except Exception as e:
@@ -353,7 +361,7 @@ def scrape_wuzzuf(keyword):
 
 
 # ──────────────────────────────────────────────
-#  BAYT — HTML scraping (best-effort, may need cookie)
+#  BAYT
 # ──────────────────────────────────────────────
 def scrape_bayt(keyword):
     jobs = []
@@ -396,7 +404,7 @@ def scrape_bayt(keyword):
 
 
 # ──────────────────────────────────────────────
-#  INDEED — heavily protected, works best with cookie
+#  INDEED
 # ──────────────────────────────────────────────
 def scrape_indeed(keyword):
     jobs = []
@@ -442,12 +450,54 @@ SOURCE_BADGES = {
     "Indeed":   ("#2557a7", "Indeed"),
 }
 
-def build_job_row(j):
+
+def format_posted(job: dict, is_new: bool) -> str:
+    """
+    For NEW jobs     → show the original scraped 'posted' string (e.g. '5 minutes ago').
+    For EARLIER jobs → compute real elapsed time from found_at so it stays accurate
+                       across subsequent email runs instead of freezing at scrape time.
+    """
+    if is_new:
+        return job.get("posted", "Recently")
+
+    found_at_str = job.get("found_at")
+    if not found_at_str:
+        return job.get("posted", "Recently")
+
+    try:
+        found_at = datetime.fromisoformat(found_at_str)
+        now = datetime.now(timezone.utc)
+        delta = now - found_at
+        total_minutes = int(delta.total_seconds() // 60)
+
+        if total_minutes < 1:
+            return "Just found"
+        elif total_minutes < 60:
+            return f"Found {total_minutes}m ago"
+        else:
+            hours = total_minutes // 60
+            mins  = total_minutes % 60
+            if mins == 0:
+                return f"Found {hours}h ago"
+            return f"Found {hours}h {mins}m ago"
+    except Exception:
+        return job.get("posted", "Recently")
+
+
+def build_job_row(j: dict, is_new: bool = True) -> str:
     color, label = SOURCE_BADGES.get(j["source"], ("#6b7280", j["source"]))
-    badge = f'<span style="background:{color};color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-right:6px;">{label}</span>'
+    badge = (
+        f'<span style="background:{color};color:#fff;font-size:10px;font-weight:700;'
+        f'padding:2px 8px;border-radius:10px;margin-right:6px;">{label}</span>'
+    )
     easy_apply_badge = ""
     if j.get("easy_apply"):
-        easy_apply_badge = '<span style="background:#057642;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">Easy Apply</span>'
+        easy_apply_badge = (
+            '<span style="background:#057642;color:#fff;font-size:10px;font-weight:700;'
+            'padding:2px 8px;border-radius:10px;margin-left:6px;">Easy Apply</span>'
+        )
+
+    posted_display = format_posted(j, is_new)
 
     return f"""
     <tr>
@@ -457,22 +507,25 @@ def build_job_row(j):
         <span style="color:#374151;font-size:13px;">{j['company']}</span>
       </td>
       <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">{j['location']}</td>
-      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">{j['posted']}</td>
+      <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:13px;">{posted_display}</td>
       <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;">
         <a href="{j['link']}" style="background:#0a66c2;color:#fff;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600;">Apply</a>
       </td>
     </tr>
     """
 
-def build_table(jobs):
-    rows = "".join(build_job_row(j) for j in jobs)
+
+def build_table(jobs: list, is_new: bool = True) -> str:
+    rows = "".join(build_job_row(j, is_new) for j in jobs)
+    # Column header differs slightly to make context clear
+    time_col_header = "POSTED" if is_new else "FOUND"
     return f"""
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
       <thead>
         <tr style="background:#f9fafb;">
           <th style="padding:10px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">POSITION / SOURCE</th>
           <th style="padding:10px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">LOCATION</th>
-          <th style="padding:10px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">POSTED</th>
+          <th style="padding:10px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;">{time_col_header}</th>
           <th style="padding:10px 16px;text-align:left;font-size:12px;color:#6b7280;font-weight:600;border-bottom:2px solid #e5e7eb;"></th>
         </tr>
       </thead>
@@ -481,6 +534,7 @@ def build_table(jobs):
       </tbody>
     </table>
     """
+
 
 REGION_ORDER = [
     "Egypt",
@@ -491,13 +545,14 @@ REGION_ORDER = [
     "Remote - Qatar",
 ]
 
-def ordered_regions(jobs):
+def ordered_regions(jobs: list) -> list:
     present = set(j.get("region", "Egypt") for j in jobs)
     ordered = [r for r in REGION_ORDER if r in present]
-    extra = sorted(r for r in present if r not in REGION_ORDER)
+    extra   = sorted(r for r in present if r not in REGION_ORDER)
     return ordered + extra
 
-def build_region_blocks(jobs, heading_color):
+
+def build_region_blocks(jobs: list, heading_color: str, is_new: bool = True) -> str:
     blocks = ""
     for region in ordered_regions(jobs):
         region_jobs = [j for j in jobs if j.get("region", "Egypt") == region]
@@ -508,12 +563,13 @@ def build_region_blocks(jobs, heading_color):
         <div style="padding:14px 32px 4px;">
           <h3 style="margin:0;font-size:14px;color:{heading_color};">{label} — {len(region_jobs)}</h3>
         </div>
-        {build_table(region_jobs)}
+        {build_table(region_jobs, is_new)}
         """
     return blocks
 
-def build_email_html(new_jobs, earlier_jobs):
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+def build_email_html(new_jobs: list, earlier_jobs: list) -> str:
+    now   = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     total = len(new_jobs) + len(earlier_jobs)
 
     sections = ""
@@ -522,17 +578,17 @@ def build_email_html(new_jobs, earlier_jobs):
         <div style="padding:18px 32px 4px;">
           <h2 style="margin:0;font-size:16px;color:#059669;">🆕 New since last check ({len(new_jobs)})</h2>
         </div>
-        {build_region_blocks(new_jobs, "#059669")}
+        {build_region_blocks(new_jobs, "#059669", is_new=True)}
         """
     if earlier_jobs:
         sections += f"""
         <div style="padding:18px 32px 4px;">
           <h2 style="margin:0;font-size:16px;color:#6b7280;">📋 Earlier today ({len(earlier_jobs)})</h2>
         </div>
-        {build_region_blocks(earlier_jobs, "#6b7280")}
+        {build_region_blocks(earlier_jobs, "#6b7280", is_new=False)}
         """
 
-    html = f"""
+    return f"""
     <!DOCTYPE html>
     <html>
     <head><meta charset="UTF-8"></head>
@@ -546,25 +602,24 @@ def build_email_html(new_jobs, earlier_jobs):
         <div style="padding:20px 32px;background:#f9fafb;border-top:1px solid #e5e7eb;">
           <p style="margin:0;font-size:12px;color:#9ca3af;">
             Sources: LinkedIn · Wuzzuf · Bayt · Indeed<br>
-            Egypt jobs + Remote (US / KSA) · Resets daily · GitHub Actions
+            Egypt jobs + Remote (US / KSA / UAE / Kuwait / Qatar) · Resets daily · GitHub Actions
           </p>
         </div>
       </div>
     </body>
     </html>
     """
-    return html
 
 
 # ──────────────────────────────────────────────
 #  SEND EMAIL
 # ──────────────────────────────────────────────
-def send_email(new_jobs, earlier_jobs):
+def send_email(new_jobs: list, earlier_jobs: list):
     if not new_jobs:
         print("No new jobs — skipping email.")
         return
 
-    total = len(new_jobs) + len(earlier_jobs)
+    total   = len(new_jobs) + len(earlier_jobs)
     subject = f"📊 {len(new_jobs)} New Jobs (Multi-Source) — {total} Total Today"
     html    = build_email_html(new_jobs, earlier_jobs)
 
@@ -591,7 +646,7 @@ def main():
     today, day_jobs = load_seen_jobs()
     print(f"   Already found today: {len(day_jobs)} jobs")
 
-    seen_ids = set(j["id"] for j in day_jobs)
+    seen_ids     = set(j["id"] for j in day_jobs)
     all_new_jobs = []
 
     # ── Egypt jobs across all sources ──
@@ -606,7 +661,7 @@ def main():
         ]:
             try:
                 results = func(keyword)
-                fresh = [j for j in results if j["id"] not in seen_ids]
+                fresh   = [j for j in results if j["id"] not in seen_ids]
                 print(f"     {name}: {len(results)} found, {len(fresh)} new")
                 all_new_jobs.extend(fresh)
                 for j in fresh:
@@ -615,14 +670,14 @@ def main():
                 print(f"     {name} failed: {e}")
             time.sleep(random.uniform(1, 3))
 
-    # ── Remote US / KSA jobs via LinkedIn ──
+    # ── Remote US / KSA / UAE / Kuwait / Qatar jobs via LinkedIn ──
     for search in REMOTE_SEARCHES:
         kw  = search["keyword"]
         loc = search["location"]
         print(f"\n   Searching (Remote/{loc}): {kw}")
         try:
             results = scrape_linkedin(kw, loc)
-            fresh = [j for j in results if j["id"] not in seen_ids]
+            fresh   = [j for j in results if j["id"] not in seen_ids]
             print(f"     LinkedIn: {len(results)} found, {len(fresh)} new")
             all_new_jobs.extend(fresh)
             for j in fresh:
@@ -633,7 +688,7 @@ def main():
 
     print(f"\n📊 New jobs this run: {len(all_new_jobs)}")
 
-    earlier_jobs = sorted(day_jobs, key=lambda j: j["found_at"], reverse=True)
+    earlier_jobs     = sorted(day_jobs, key=lambda j: j["found_at"], reverse=True)
     updated_day_jobs = all_new_jobs + day_jobs
     save_seen_jobs(today, updated_day_jobs)
     print(f"💾 seen_jobs.json updated — {len(updated_day_jobs)} total jobs today")
