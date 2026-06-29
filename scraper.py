@@ -24,7 +24,7 @@ WUZZUF_COOKIE    = os.environ.get("WUZZUF_COOKIE", "")      # Wuzzuf full cookie
 
 # ── ADD OR REMOVE RECIPIENT EMAILS HERE ────────
 RECIPIENT_EMAILS = [
-    "ibrahem.ramadan.ahmed@gmail.com",
+    "ibrahemramadan148@gmail.com",
     # "colleague@company.com",
 ]
 # ───────────────────────────────────────────────
